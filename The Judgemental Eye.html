@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Judgmental Eye v2.4 — Inspektor 3D &amp; Cara Kerja</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #111827;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+        }
+        #viewport {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+            cursor: grab;
+        }
+        #viewport:active {
+            cursor: grabbing;
+        }
+        /* Minimalist White-Mode Range Slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #111827;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            transition: transform 0.12s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #111827;
+            cursor: pointer;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        }
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 999px;
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body class="bg-white text-gray-900 overflow-x-hidden">
+
+    <!-- ===================================================================== -->
+    <!-- STICKY MINIMALIST HEADER -->
+    <!-- ===================================================================== -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-200">
+        <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-900 shrink-0"></span>
+                <span class="text-xs sm:text-sm font-semibold tracking-tight text-gray-900 truncate">THE JUDGMENTAL EYE</span>
+                <span class="hidden sm:inline-block mono text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">v2.4</span>
+            </div>
+
+            <nav class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200/80">
+                <a href="#inspector" class="px-3 py-1 rounded-lg text-xs font-medium text-gray-900 bg-white shadow-sm transition">Inspektor 3D</a>
+                <a href="#cara-kerja" class="px-3 py-1 rounded-lg text-xs font-medium text-gray-600 hover:text-gray-900 transition">Cara Kerja</a>
+            </nav>
+
+            <div class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-200 text-[11px] mono text-gray-600">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span id="header-status">MODE: TRACK</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: 3D CAD & KINEMATICS INSPECTOR (ADAPTIVE STUDIO LAYOUT) -->
+    <!-- ===================================================================== -->
+    <section id="inspector" class="border-b border-gray-200 bg-[#FAFAFA]">
+        <div class="max-w-[1440px] mx-auto flex flex-col lg:flex-row lg:h-[calc(100vh-56px)] lg:min-h-[620px]">
+
+            <!-- 3D Studio Canvas Area -->
+            <div class="relative w-full h-[56vh] min-h-[360px] sm:h-[62vh] lg:h-full lg:flex-1 bg-[#F4F5F7] overflow-hidden">
+                <div id="viewport"></div>
+
+                <!-- Top-Left Minimal Spec Tag -->
+                <div class="absolute top-3 left-3 sm:top-4 sm:left-4 pointer-events-none">
+                    <div class="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                        <div class="text-[11px] font-semibold text-gray-900">Model CAD v2.4 (1:1 mm)</div>
+                        <div class="text-[10px] text-gray-500 mono">Geser untuk putar &bull; Cubit/Scroll untuk zoom</div>
+                    </div>
+                </div>
+
+                <!-- Bottom-Left Live Telemetry Bar -->
+                <div class="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 pointer-events-none">
+                    <div class="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] mono text-gray-600">
+                        <span id="readout-mode" class="text-gray-900 font-semibold">TRACK</span>
+                        <span class="text-gray-300">|</span>
+                        <span>PAN <strong id="readout-pan" class="text-gray-900">0.0</strong>&deg;</span>
+                        <span>TILT <strong id="readout-tilt" class="text-gray-900">0.0</strong>&deg;</span>
+                        <span>LID <strong id="readout-lid" class="text-gray-900">0.0</strong>&deg;</span>
+                    </div>
+                </div>
+
+                <!-- Error Overlay (Hidden by default) -->
+                <div id="error-box" class="hidden absolute inset-0 z-40 bg-white/95 flex items-center justify-center p-6">
+                    <div class="bg-white border border-red-200 rounded-2xl p-5 max-w-md shadow-sm">
+                        <div class="text-sm font-semibold text-red-600 mb-1">WebGL Initialization Error</div>
+                        <p id="error-msg" class="text-xs text-gray-600 mono"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adaptive Control Sidebar (Right on Desktop, Stacked Card on Mobile/Tablet) -->
+            <aside class="w-full lg:w-[340px] xl:w-[360px] bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col">
+                <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-900">Kontrol Inspeksi</span>
+                    <button id="btn-reset-all" class="text-[11px] font-medium text-gray-500 hover:text-gray-900 px-2 py-1 rounded-lg hover:bg-gray-100 transition">
+                        Reset
+                    </button>
+                </div>
+
+                <div class="p-5 space-y-5 lg:overflow-y-auto sidebar-scroll flex-1">
+
+                    <!-- Behavior Mode Selector -->
+                    <div class="space-y-2">
+                        <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Mode Perilaku</div>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-3 gap-1.5">
+                            <button id="btn-mode-track" class="px-2.5 py-2 rounded-xl text-xs font-medium border transition">Cursor Track</button>
+                            <button id="btn-mode-idle" class="px-2.5 py-2 rounded-xl text-xs font-medium border transition">Idle</button>
+                            <button id="btn-mode-judge" class="px-2.5 py-2 rounded-xl text-xs font-medium border transition">Judgmental</button>
+                            <button id="btn-mode-sleep" class="px-2.5 py-2 rounded-xl text-xs font-medium border transition">Sleep</button>
+                            <button id="btn-mode-manual" class="px-2.5 py-2 rounded-xl text-xs font-medium border transition col-span-2 sm:col-span-1 lg:col-span-2">Manual</button>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100"></div>
+
+                    <!-- Manual Servo Sliders -->
+                    <div class="space-y-3">
+                        <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Aktuator Servo (3-DOF)</div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-gray-700 font-medium">Pan (Kiri / Kanan)</span>
+                                <span id="val-pan" class="mono text-gray-900">0.0&deg;</span>
+                            </div>
+                            <input id="slider-pan" type="range" min="-45" max="45" step="0.5" value="0">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-gray-700 font-medium">Tilt (Atas / Bawah)</span>
+                                <span id="val-tilt" class="mono text-gray-900">0.0&deg;</span>
+                            </div>
+                            <input id="slider-tilt" type="range" min="-25" max="25" step="0.5" value="0">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-gray-700 font-medium">Eyelid (Kelopak)</span>
+                                <span id="val-eyelid" class="mono text-gray-900">0.0&deg;</span>
+                            </div>
+                            <input id="slider-eyelid" type="range" min="0" max="85" step="0.5" value="0">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100"></div>
+
+                    <!-- Assembly & Inspection Controls -->
+                    <div class="space-y-3">
+                        <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Perakitan &amp; Part</div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1.5">
+                                <span class="text-gray-700 font-medium">Explode View</span>
+                                <span id="val-explode" class="mono text-gray-900">0%</span>
+                            </div>
+                            <input id="slider-explode" type="range" min="0" max="100" step="1" value="0">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-1.5 bg-gray-100 p-1 rounded-xl border border-gray-200/80">
+                            <button id="btn-elec-on" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition">With Electrical</button>
+                            <button id="btn-elec-off" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition">3D Print Only</button>
+                        </div>
+
+                        <button id="btn-xray" class="w-full px-3 py-2 rounded-xl text-xs font-medium border transition">
+                            X-Ray Housing: OFF
+                        </button>
+                    </div>
+
+                    <div class="border-t border-gray-100"></div>
+
+                    <!-- Camera View Presets -->
+                    <div class="space-y-2">
+                        <div class="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Sudut Kamera</div>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button id="btn-cam-iso" class="px-2 py-1.5 rounded-xl text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition">Iso</button>
+                            <button id="btn-cam-front" class="px-2 py-1.5 rounded-xl text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition">Front</button>
+                            <button id="btn-cam-back" class="px-2 py-1.5 rounded-xl text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition">Back</button>
+                            <button id="btn-cam-left" class="px-2 py-1.5 rounded-xl text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition">Left</button>
+                            <button id="btn-cam-right" class="px-2 py-1.5 rounded-xl text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition">Right</button>
+                            <button id="btn-cam-top" class="px-2 py-1.5 rounded-xl text-xs font-medium bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 transition">Top</button>
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: CARA KERJA ROBOT (EDITORIAL WHITE MINIMALISM) -->
+    <!-- ===================================================================== -->
+    <main id="cara-kerja" class="bg-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 space-y-16 sm:space-y-20">
+
+            <!-- 1. Gambaran Singkat -->
+            <section class="max-w-3xl space-y-4">
+                <div class="mono text-[11px] font-semibold uppercase tracking-widest text-gray-400">01 / Gambaran Singkat</div>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+                    Menciptakan <span class="italic font-semibold">Illusion of Life</span> dari Mekanisme Sederhana
+                </h1>
+                <p class="text-sm sm:text-base leading-relaxed text-gray-600">
+                    <strong>The Judgmental Eye</strong> adalah robot mata animatronik berukuran desktop yang dirancang untuk berinteraksi secara emosional dengan manusia di sekitarnya. Alih-alih bergerak kaku seperti mesin industri, robot ini meniru perilaku mata alami: mengamati ruangan, melirik ke wajah lawan bicara, menyipitkan kelopak mata dengan ekspresi curiga saat seseorang berdiri terlalu dekat, lalu tertidur ketika dibiarkan sendirian.
+                </p>
+            </section>
+
+            <!-- 2. Arsitektur Perangkat Keras -->
+            <section class="space-y-6">
+                <div class="space-y-1.5">
+                    <div class="mono text-[11px] font-semibold uppercase tracking-widest text-gray-400">02 / Perangkat Keras</div>
+                    <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Arsitektur Sederhana, Efisien, dan Andal</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                    <article class="p-6 rounded-2xl bg-[#FAFAFA] border border-gray-200 space-y-2.5">
+                        <div class="mono text-[11px] font-semibold text-gray-400">OTAK &amp; PENGLIHATAN</div>
+                        <h3 class="text-base font-semibold text-gray-900">ESP32-S3-N16R8 CAM</h3>
+                        <p class="text-sm leading-relaxed text-gray-600">
+                            Menjalankan deteksi wajah langsung di dalam chip menggunakan kamera OV2640 tanpa bantuan komputer. Karena pin GPIO-nya memadai dan jarak dideteksi dari lebar wajah, sistem ini tidak lagi memerlukan modul tambahan PCA9685 maupun sensor jarak VL53L0X.
+                        </p>
+                    </article>
+
+                    <article class="p-6 rounded-2xl bg-[#FAFAFA] border border-gray-200 space-y-2.5">
+                        <div class="mono text-[11px] font-semibold text-gray-400">PENGGERAK 3-DOF</div>
+                        <h3 class="text-base font-semibold text-gray-900">3x Micro Servo MG90S</h3>
+                        <p class="text-sm leading-relaxed text-gray-600">
+                            Menggunakan roda gigi logam (metal gear) agar tahan aus. Servo pertama memutar arah pandang kiri-kanan (Pan), servo kedua mengatur atas-bawah (Tilt) dengan poros pasif di sisi berlawanan, dan servo ketiga menggerakkan kelopak mata (Eyelid).
+                        </p>
+                    </article>
+
+                    <article class="p-6 rounded-2xl bg-[#FAFAFA] border border-gray-200 space-y-2.5">
+                        <div class="mono text-[11px] font-semibold text-gray-400">DISTRIBUSI DAYA</div>
+                        <h3 class="text-base font-semibold text-gray-900">Adaptor 5V 3A + Elko 1000uF</h3>
+                        <p class="text-sm leading-relaxed text-gray-600">
+                            Menyuplai mikrokontroler dan ketiga servo secara stabil. Kapasitor elektrolit 1000uF 16V dipasang paralel dekat jalur servo untuk menyerap lonjakan arus sesaat, mencegah papan ESP32 mengalami restart mendadak (brownout).
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <!-- 3. 4 Mode Perilaku (Interactive State Machine) -->
+            <section class="space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+                    <div class="space-y-1.5">
+                        <div class="mono text-[11px] font-semibold uppercase tracking-widest text-gray-400">03 / State Machine Interaktif</div>
+                        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Empat Mode Perilaku Robot</h2>
+                    </div>
+                    <p class="text-xs text-gray-500">Klik kartu di bawah untuk langsung mencoba mode pada inspektor 3D.</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <button type="button" data-state-card="IDLE" class="state-card text-left p-5 rounded-2xl border border-gray-200 bg-white hover:border-gray-400 transition flex flex-col justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="mono text-[11px] font-semibold text-gray-400">STATE 01</span>
+                                <span class="card-badge hidden mono text-[10px] px-2 py-0.5 rounded-full bg-gray-900 text-white">AKTIF</span>
+                            </div>
+                            <h3 class="text-base font-semibold text-gray-900">Idle / Search</h3>
+                            <p class="text-xs sm:text-sm leading-relaxed text-gray-600">
+                                Saat tidak ada wajah di depan kamera, mata melirik acak secara perlahan di dalam batas aman sambil berkedip alami setiap 4 hingga 8 detik.
+                            </p>
+                        </div>
+                        <div class="mono text-[11px] text-gray-400 pt-2 border-t border-gray-100">Pemicu: Startup / wajah hilang</div>
+                    </button>
+
+                    <button type="button" data-state-card="TRACK" class="state-card text-left p-5 rounded-2xl border border-gray-200 bg-white hover:border-gray-400 transition flex flex-col justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="mono text-[11px] font-semibold text-gray-400">STATE 02</span>
+                                <span class="card-badge hidden mono text-[10px] px-2 py-0.5 rounded-full bg-gray-900 text-white">AKTIF</span>
+                            </div>
+                            <h3 class="text-base font-semibold text-gray-900">Tracking</h3>
+                            <p class="text-xs sm:text-sm leading-relaxed text-gray-600">
+                                Begitu wajah terdeteksi, mekanisme pan-tilt mengikuti pusat wajah secara halus dengan kelopak mata terbuka normal dan tatapan responsif.
+                            </p>
+                        </div>
+                        <div class="mono text-[11px] text-gray-400 pt-2 border-t border-gray-100">Pemicu: Wajah terdeteksi kamera</div>
+                    </button>
+
+                    <button type="button" data-state-card="JUDGMENTAL" class="state-card text-left p-5 rounded-2xl border border-gray-200 bg-white hover:border-gray-400 transition flex flex-col justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="mono text-[11px] font-semibold text-gray-400">STATE 03</span>
+                                <span class="card-badge hidden mono text-[10px] px-2 py-0.5 rounded-full bg-gray-900 text-white">AKTIF</span>
+                            </div>
+                            <h3 class="text-base font-semibold text-gray-900">Judgmental</h3>
+                            <p class="text-xs sm:text-sm leading-relaxed text-gray-600">
+                                Ketika wajah mendekat kurang dari 30 cm (diukur dari lebar bounding box wajah), kelopak menyipit sekitar 50% dan gerak melambat sambil mengunci tatapan.
+                            </p>
+                        </div>
+                        <div class="mono text-[11px] text-gray-400 pt-2 border-t border-gray-100">Pemicu: Jarak &lt; 30 cm (hysteresis)</div>
+                    </button>
+
+                    <button type="button" data-state-card="SLEEP" class="state-card text-left p-5 rounded-2xl border border-gray-200 bg-white hover:border-gray-400 transition flex flex-col justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="mono text-[11px] font-semibold text-gray-400">STATE 04</span>
+                                <span class="card-badge hidden mono text-[10px] px-2 py-0.5 rounded-full bg-gray-900 text-white">AKTIF</span>
+                            </div>
+                            <h3 class="text-base font-semibold text-gray-900">Sleep</h3>
+                            <p class="text-xs sm:text-sm leading-relaxed text-gray-600">
+                                Jika tidak ada wajah selama lebih dari 60 detik, bola mata kembali ke posisi tengah, kelopak menutup penuh, dan sinyal PWM dimatikan agar servo dingin serta senyap.
+                            </p>
+                        </div>
+                        <div class="mono text-[11px] text-gray-400 pt-2 border-t border-gray-100">Pemicu: Inaktif &gt; 60 detik</div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 4. Rahasia Gerakan Alami -->
+            <section class="space-y-6">
+                <div class="space-y-1.5">
+                    <div class="mono text-[11px] font-semibold uppercase tracking-widest text-gray-400">04 / Firmware &amp; Kualitas Gerak</div>
+                    <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Rahasia di Balik Gerakan yang Terasa Hidup</h2>
+                </div>
+
+                <div class="divide-y divide-gray-200 border-t border-b border-gray-200">
+                    <div class="py-5 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6">
+                        <div class="md:col-span-4 font-semibold text-sm text-gray-900">Pemrosesan Dual-Core FreeRTOS</div>
+                        <p class="md:col-span-8 text-sm leading-relaxed text-gray-600">
+                            Core 0 khusus membaca kamera dan mendeteksi wajah (8–15 FPS), sementara Core 1 khusus menjalankan interpolasi gerak servo pada 50 Hz. Hasilnya, bola mata tetap mengalir mulus tanpa tersendat mengikuti kecepatan kamera.
+                        </p>
+                    </div>
+
+                    <div class="py-5 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6">
+                        <div class="md:col-span-4 font-semibold text-sm text-gray-900">Saccades &amp; Micro-Saccades</div>
+                        <p class="md:col-span-8 text-sm leading-relaxed text-gray-600">
+                            Alih-alih bergerak dengan kecepatan konstan, mata menggunakan kurva ease-out (cepat di awal lalu melambat halus di titik target) ditambah pergeseran mikro 1–2 derajat agar tatapan tidak terlihat seperti patung.
+                        </p>
+                    </div>
+
+                    <div class="py-5 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6">
+                        <div class="md:col-span-4 font-semibold text-sm text-gray-900">Kompensasi Paralaks</div>
+                        <p class="md:col-span-8 text-sm leading-relaxed text-gray-600">
+                            Karena kamera berada di bawah bola mata, sistem otomatis menurunkan sudut tilt secara proporsional ketika wajah semakin dekat agar kontak mata tetap tepat ke arah mata pengunjung, bukan ke dahi.
+                        </p>
+                    </div>
+
+                    <div class="py-5 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6">
+                        <div class="md:col-span-4 font-semibold text-sm text-gray-900">Target Locking Multi-Wajah</div>
+                        <p class="md:col-span-8 text-sm leading-relaxed text-gray-600">
+                            Saat banyak orang menonton secara bersamaan, robot mengunci wajah dengan kotak terbesar (terdekat) dan tidak berpindah-pindah secara acak kecuali target utama hilang lebih dari 1,5 detik atau ada wajah baru yang jauh lebih dekat.
+                        </p>
+                    </div>
+
+                    <div class="py-5 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-6">
+                        <div class="md:col-span-4 font-semibold text-sm text-gray-900">Deadband Anti-Dengung</div>
+                        <p class="md:col-span-8 text-sm leading-relaxed text-gray-600">
+                            Jika selisih sudut target kurang dari 2–3 derajat, pembaruan posisi dihentikan sementara untuk mencegah servo MG90S berdengung atau bergetar kecil di tempat.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Spesifikasi Mekanik v2.4 -->
+            <section class="space-y-6">
+                <div class="space-y-1.5">
+                    <div class="mono text-[11px] font-semibold uppercase tracking-widest text-gray-400">05 / Spesifikasi Mekanik v2.4</div>
+                    <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Ringkasan Dimensi &amp; Kesiapan Cetak 3D</h2>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-gray-200">
+                        <div class="mono text-lg sm:text-xl font-semibold text-gray-900">65 mm</div>
+                        <div class="text-xs text-gray-500 mt-1">Diameter bola mata berongga (dinding 3 mm, ringan untuk MG90S)</div>
+                    </div>
+                    <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-gray-200">
+                        <div class="mono text-lg sm:text-xl font-semibold text-gray-900">0.25 mm</div>
+                        <div class="text-xs text-gray-500 mt-1">Wiggle room per sisi, terkalibrasi untuk akurasi Bambu Lab A1</div>
+                    </div>
+                    <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-gray-200">
+                        <div class="mono text-lg sm:text-xl font-semibold text-gray-900">1:1 Link</div>
+                        <div class="text-xs text-gray-500 mt-1">Parallelogram 55 mm simetris (+10,5&deg;) dengan coakan bebas tabrakan</div>
+                    </div>
+                    <div class="p-5 rounded-2xl bg-[#FAFAFA] border border-gray-200">
+                        <div class="mono text-lg sm:text-xl font-semibold text-gray-900">&Oslash;14.5 mm</div>
+                        <div class="text-xs text-gray-500 mt-1">Lubang lensa OV2640 sejajar sumbu, dongak 7&deg; &amp; akses USB-C lega</div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Minimal Footer -->
+    <footer class="border-t border-gray-200 bg-[#FAFAFA]">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
+            <span>The Judgmental Eye &mdash; Proyek Robotika Kreatif</span>
+            <span class="mono">Revisi Mekanik v2.4 &bull; ESP32-S3-N16R8 &bull; 3x MG90S</span>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- THREE.JS 1:1 OPENSCAD v2.4 CAD & KINEMATICS ENGINE -->
+    <!-- ===================================================================== -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // =========================================================================
+        // LITERAL OPENSCAD v2.4 CONSTANTS (1 unit = 1 mm)
+        // =========================================================================
+        const DEG2RAD = Math.PI / 180;
+        const TOL = 0.25;
+
+        const EYE_DIA = 65.0;
+        const R_EYE = EYE_DIA / 2;         // 32.5
+        const R_LID_IN = R_EYE + 1.2;      // 33.7
+        const R_LID_OUT = R_LID_IN + 2.4;  // 36.1
+
+        const Z_BASE_TOP = 38.0;
+        const Z_FORK_BASE = 48.0;
+        const Z_EYE = 110.0;
+
+        const CRADLE_HALF_W = 43.0;
+        const CRADLE_OUT_W = 47.0;
+        const FORK_ARM_T = 4.0;
+        const FORK_IN_W = 50.5;
+        const FORK_OUT_W = FORK_IN_W + FORK_ARM_T; // 54.5
+
+        const CAM_W = 28.0 + TOL * 2;      // 28.5
+        const CAM_H = 57.5 + TOL * 2;      // 58.0
+        const CAM_T = 2.0 + TOL * 2;       // 2.5
+        const CAM_MOUNT_Y = 52.0;
+        const CAM_TILT_ANGLE = 7.0;
+
+        // v2.4 Symmetric Parallelogram Kinematics
+        const LID_OPEN_BIAS = 32.0;
+        const CRANK_BIAS = 10.5;           // Symmetric crank swing: +42.5 deg (open) to -42.5 deg (closed)
+        const CRANK_R = 14.0;
+        const LID_SRV_Y = -55.0;
+        const LINK_LEN = Math.abs(LID_SRV_Y); // 55.0
+        const LINK_X = -40.75;
+        const EYELID_WALL_X = -27.5;
+
+        const SRV_L = 23.3;
+        const SRV_W = 12.7;
+        const SRV_EAR_L = 32.5;
+        const SRV_HOLE_DIST = 27.5;
+        const SRV_SHAFT_OFF = 5.3;
+
+        // =========================================================================
+        // APPLICATION STATE
+        // =========================================================================
+        const state = {
+            mode: 'TRACK', // 'TRACK' | 'IDLE' | 'JUDGMENTAL' | 'SLEEP' | 'MANUAL'
+            showElectrical: true,
+            xray: false,
+            explode: 0.0,
+
+            targetPan: 0,
+            targetTilt: 0,
+            targetEyelid: 0,
+            currentPan: 0,
+            currentTilt: 0,
+            currentEyelid: 0,
+
+            // Idle glance & micro-saccade timers
+            nextIdleGlance: performance.now() + 1400,
+            idlePan: 0,
+            idleTilt: 0,
+            nextMicroSaccade: performance.now() + 1200,
+            microPan: 0,
+            microTilt: 0,
+
+            // Natural blink timer
+            nextBlinkTime: performance.now() + 3800,
+            blinkProgress: -1,
+
+            // Smooth camera preset transition
+            camLerp: false,
+            camTargetPos: new THREE.Vector3(120, 145, 235),
+            camTargetLook: new THREE.Vector3(0, 82, 0)
+        };
+
+        const printMaterials = [];
+        const elecGroups = [];
+        const explodeEntries = [];
+
+        // =========================================================================
+        // OPENSCAD-EXACT GEOMETRY HELPERS (STUDIO WHITE-MINIMALISM PALETTE)
+        // =========================================================================
+        function makePrintMat(hex, roughness = 0.55) {
+            const mat = new THREE.MeshStandardMaterial({
+                color: hex,
+                roughness,
+                metalness: 0.05,
+                transparent: false,
+                opacity: 1.0
+            });
+            printMaterials.push(mat);
+            return mat;
+        }
+
+        function addEdges(mesh, threshold = 28) {
+            const edges = new THREE.EdgesGeometry(mesh.geometry, threshold);
+            const mat = new THREE.LineBasicMaterial({
+                color: 0x111827,
+                transparent: true,
+                opacity: 0.22
+            });
+            mesh.add(new THREE.LineSegments(edges, mat));
+            return mesh;
+        }
+
+        function addBox(parent, x, y, z, sx, sy, sz, mat) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+            mesh.position.set(x + sx / 2, y + sy / 2, z + sz / 2);
+            parent.add(addEdges(mesh));
+            return mesh;
+        }
+
+        function addCylZ(parent, x, y, z, d1, d2, h, mat) {
+            const mesh = new THREE.Mesh(new THREE.CylinderGeometry(d2 / 2, d1 / 2, h, 48), mat);
+            mesh.rotation.x = Math.PI / 2;
+            mesh.position.set(x, y, z + h / 2);
+            parent.add(addEdges(mesh, 35));
+            return mesh;
+        }
+
+        function addCylX(parent, x, y, z, d, h, mat) {
+            const mesh = new THREE.Mesh(new THREE.CylinderGeometry(d / 2, d / 2, h, 48), mat);
+            mesh.rotation.z = -Math.PI / 2;
+            mesh.position.set(x + h / 2, y, z);
+            parent.add(addEdges(mesh, 35));
+            return mesh;
+        }
+
+        function addCylY(parent, x, y, z, d, h, mat) {
+            const mesh = new THREE.Mesh(new THREE.CylinderGeometry(d / 2, d / 2, h, 48), mat);
+            mesh.position.set(x, y + h / 2, z);
+            parent.add(addEdges(mesh, 35));
+            return mesh;
+        }
+
+        function addExtrudeZ(parent, shape, zStart, depth, mat) {
+            const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 32 });
+            geo.translate(0, 0, zStart);
+            const mesh = new THREE.Mesh(geo, mat);
+            parent.add(addEdges(mesh));
+            return mesh;
+        }
+
+        const BASIS_YZ_TO_X = new THREE.Matrix4().makeBasis(
+            new THREE.Vector3(0, 1, 0),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(1, 0, 0)
+        );
+        function addExtrudeX(parent, shape, xStart, depth, mat) {
+            const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 32 });
+            geo.applyMatrix4(BASIS_YZ_TO_X);
+            geo.translate(xStart, 0, 0);
+            const mesh = new THREE.Mesh(geo, mat);
+            parent.add(addEdges(mesh));
+            return mesh;
+        }
+
+        const BASIS_XZ_TO_NEG_Y = new THREE.Matrix4().makeBasis(
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(0, -1, 0)
+        );
+        function addExtrudeY(parent, shape, yStart, depth, mat) {
+            const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 32 });
+            geo.applyMatrix4(BASIS_XZ_TO_NEG_Y);
+            geo.translate(0, yStart + depth, 0);
+            const mesh = new THREE.Mesh(geo, mat);
+            parent.add(addEdges(mesh));
+            return mesh;
+        }
+
+        function addCircleHole(shape, cx, cy, r) {
+            const hole = new THREE.Path();
+            hole.absarc(cx, cy, r, 0, Math.PI * 2, true);
+            shape.holes.push(hole);
+        }
+
+        function addRectHole(shape, x0, y0, w, h) {
+            const hole = new THREE.Path();
+            hole.moveTo(x0, y0);
+            hole.lineTo(x0, y0 + h);
+            hole.lineTo(x0 + w, y0 + h);
+            hole.lineTo(x0 + w, y0);
+            hole.closePath();
+            shape.holes.push(hole);
+        }
+
+        function createEyelidShellGeo(rIn, rOut, alphaStartDeg, alphaEndDeg, segU = 40, segV = 22) {
+            const a0 = alphaStartDeg * DEG2RAD;
+            const a1 = alphaEndDeg * DEG2RAD;
+            const pos = [];
+            const idx = [];
+
+            function pushGrid(rad) {
+                const start = pos.length / 3;
+                for (let iv = 0; iv <= segV; iv++) {
+                    const alpha = a0 + (a1 - a0) * (iv / segV);
+                    const ca = Math.cos(alpha), sa = Math.sin(alpha);
+                    for (let iu = 0; iu <= segU; iu++) {
+                        const phi = -Math.PI / 2 + Math.PI * (iu / segU);
+                        const x = rad * Math.sin(phi);
+                        const rho = rad * Math.cos(phi);
+                        pos.push(x, rho * ca, rho * sa);
+                    }
+                }
+                return start;
+            }
+
+            const outS = pushGrid(rOut);
+            const inS = pushGrid(rIn);
+            const stride = segU + 1;
+
+            for (let iv = 0; iv < segV; iv++) {
+                for (let iu = 0; iu < segU; iu++) {
+                    const a = outS + iv * stride + iu;
+                    idx.push(a, a + 1, a + stride + 1, a, a + stride + 1, a + stride);
+                }
+            }
+            for (let iv = 0; iv < segV; iv++) {
+                for (let iu = 0; iu < segU; iu++) {
+                    const a = inS + iv * stride + iu;
+                    idx.push(a, a + stride + 1, a + 1, a, a + stride, a + stride + 1);
+                }
+            }
+            for (let iu = 0; iu < segU; iu++) {
+                const o1 = outS + iu, i1 = inS + iu;
+                idx.push(o1, i1, i1 + 1, o1, i1 + 1, o1 + 1);
+            }
+            const endRow = segV * stride;
+            for (let iu = 0; iu < segU; iu++) {
+                const o1 = outS + endRow + iu, i1 = inS + endRow + iu;
+                idx.push(o1, o1 + 1, i1 + 1, o1, i1 + 1, i1);
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            geo.setIndex(idx);
+            geo.computeVertexNormals();
+            return geo;
+        }
+
+        // =========================================================================
+        // 1. BASE HOUSING
+        // =========================================================================
+        function buildBaseHousing() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0xd1d5db);
+
+            const r = 8;
+            const plate = new THREE.Shape();
+            plate.moveTo(-55 + r, -60);
+            plate.lineTo(55 - r, -60);
+            plate.quadraticCurveTo(55, -60, 55, -60 + r);
+            plate.lineTo(55, 60 - r);
+            plate.quadraticCurveTo(55, 60, 55 - r, 60);
+            plate.lineTo(10, 60);
+            plate.lineTo(10, 47);
+            plate.lineTo(-10, 47);
+            plate.lineTo(-10, 60);
+            plate.lineTo(-55 + r, 60);
+            plate.quadraticCurveTo(-55, 60, -55, 60 - r);
+            plate.lineTo(-55, -60 + r);
+            plate.quadraticCurveTo(-55, -60, -55 + r, -60);
+
+            for (const sx of [-1, 1]) {
+                for (const sy of [-1, 1]) {
+                    addCircleHole(plate, sx * 45, sy * 50, 1.7);
+                }
+            }
+            addCircleHole(plate, -12, CAM_MOUNT_Y, 1.4);
+            addCircleHole(plate, 12, CAM_MOUNT_Y, 1.4);
+            addExtrudeZ(g, plate, 0, 5.0, mat);
+
+            addBox(g, -27, -23, 5, 5, 46, 29, mat);
+            addBox(g, 22, -23, 5, 5, 46, 29, mat);
+
+            const fw = new THREE.Shape();
+            fw.moveTo(-22, 5);
+            fw.lineTo(-10, 5);
+            fw.lineTo(-10, 20);
+            fw.lineTo(10, 20);
+            fw.lineTo(10, 5);
+            fw.lineTo(22, 5);
+            fw.lineTo(22, 34);
+            fw.lineTo(-22, 34);
+            fw.closePath();
+            addExtrudeY(g, fw, 18, 5.0, mat);
+
+            const td = new THREE.Shape();
+            td.moveTo(-27, -23);
+            td.lineTo(27, -23);
+            td.lineTo(27, 23);
+            td.lineTo(-27, 23);
+            td.closePath();
+            addRectHole(td, -SRV_L / 2 + SRV_SHAFT_OFF, -SRV_W / 2, SRV_L + 3.5, SRV_W);
+            addCircleHole(td, SRV_SHAFT_OFF - SRV_HOLE_DIST / 2, 0, 1.15);
+            addCircleHole(td, SRV_SHAFT_OFF + SRV_HOLE_DIST / 2, 0, 1.15);
+            addExtrudeZ(g, td, 34, 4.0, mat);
+
+            return g;
+        }
+
+        // =========================================================================
+        // 2. CAMERA MOUNT (v2.4 ALIGNED Ø14.5mm LENS HOLE AT Z = 45.0mm)
+        // =========================================================================
+        function buildCameraMount() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0x9ca3af);
+
+            const leftFoot = new THREE.Shape();
+            leftFoot.moveTo(-18, -5); leftFoot.lineTo(-10, -5);
+            leftFoot.lineTo(-10, 5);  leftFoot.lineTo(-18, 5);
+            leftFoot.closePath();
+            addCircleHole(leftFoot, -12, 0, 1.7);
+            addExtrudeZ(g, leftFoot, 0, 5.0, mat);
+
+            const rightFoot = new THREE.Shape();
+            rightFoot.moveTo(10, -5); rightFoot.lineTo(18, -5);
+            rightFoot.lineTo(18, 5);  rightFoot.lineTo(10, 5);
+            rightFoot.closePath();
+            addCircleHole(rightFoot, 12, 0, 1.7);
+            addExtrudeZ(g, rightFoot, 0, 5.0, mat);
+
+            addBox(g, -17.75, -4, 4, 5.0, 8.0, 14.0, mat);
+            addBox(g, 12.75, -4, 4, 5.0, 8.0, 14.0, mat);
+
+            const frame = new THREE.Group();
+            frame.position.set(0, 0, 13.0);
+            frame.rotation.x = CAM_TILT_ANGLE * DEG2RAD;
+            g.add(frame);
+
+            const fp = new THREE.Shape();
+            fp.moveTo(-17.75, 0);
+            fp.lineTo(-10, 0);
+            fp.lineTo(-10, 9);
+            fp.lineTo(0, 17);
+            fp.lineTo(10, 9);
+            fp.lineTo(10, 0);
+            fp.lineTo(17.75, 0);
+            fp.lineTo(17.75, 60);
+            fp.lineTo(-17.75, 60);
+            fp.closePath();
+            // v2.4: Center at Z = CAM_H/2 + 2.5 + 13.5 = 45.0mm, Ø14.5mm (r = 7.25mm)
+            addCircleHole(fp, 0, 45.0, 7.25);
+            addExtrudeY(frame, fp, 1.25, 2.8, mat);
+
+            addBox(frame, -17.75, -3.05, 0, 3.5, 7.1, 60, mat);
+            addBox(frame, 14.25, -3.05, 0, 3.5, 7.1, 60, mat);
+
+            for (const sz of [0, 52]) {
+                addBox(frame, -17.75, -3.05, sz, 4.7, 1.8, 7.0, mat);
+                addBox(frame, 13.05, -3.05, sz, 4.7, 1.8, 7.0, mat);
+            }
+            addBox(frame, -14.25, -1.25, 0, 4.0, 5.3, 2.5, mat);
+            addBox(frame, 10.25, -1.25, 0, 4.0, 5.3, 2.5, mat);
+
+            return g;
+        }
+
+        // =========================================================================
+        // 3. PAN FORK
+        // =========================================================================
+        function buildPanFork() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0xe5e7eb);
+            const forkH = Z_EYE - Z_FORK_BASE; // 62.0
+
+            const bar = new THREE.Shape();
+            bar.moveTo(-FORK_OUT_W, -10);
+            bar.lineTo(FORK_OUT_W, -10);
+            bar.lineTo(FORK_OUT_W, 10);
+            bar.lineTo(-FORK_OUT_W, 10);
+            bar.closePath();
+            addCircleHole(bar, 0, 0, 1.75);
+            addCircleHole(bar, -10, 0, 1.0);
+            addCircleHole(bar, 10, 0, 1.0);
+            addRectHole(bar, -24.5, -8.0, 5.0, 2.5);
+            addRectHole(bar, 19.5, -8.0, 5.0, 2.5);
+            addExtrudeZ(g, bar, 0, 6.0, mat);
+
+            const leftArm = new THREE.Shape();
+            leftArm.moveTo(-10, 0);
+            leftArm.lineTo(10, 0);
+            leftArm.lineTo(10, forkH);
+            leftArm.absarc(0, forkH, 10, 0, Math.PI, false);
+            leftArm.closePath();
+            addCircleHole(leftArm, 0, forkH, 1.7);
+            addExtrudeX(g, leftArm, -FORK_OUT_W, FORK_ARM_T, mat);
+
+            addCylX(g, -FORK_IN_W, 0, forkH, 12.0, 2.5, mat);
+
+            const wingY0 = -SRV_SHAFT_OFF - SRV_EAR_L / 2 - 3.5;
+            const wingY1 = -SRV_SHAFT_OFF + SRV_EAR_L / 2 + 3.5;
+            const rightArm = new THREE.Shape();
+            rightArm.moveTo(-10, 0);
+            rightArm.lineTo(10, 0);
+            rightArm.lineTo(10, forkH - 12);
+            rightArm.lineTo(wingY1, forkH - 12);
+            rightArm.lineTo(wingY1, forkH + 12);
+            rightArm.lineTo(wingY0, forkH + 12);
+            rightArm.lineTo(wingY0, forkH - 12);
+            rightArm.lineTo(-10, forkH - 12);
+            rightArm.closePath();
+            addRectHole(rightArm, -SRV_SHAFT_OFF - SRV_L / 2, forkH - SRV_W / 2, SRV_L, SRV_W);
+            addCircleHole(rightArm, -SRV_SHAFT_OFF - SRV_HOLE_DIST / 2, forkH, 1.15);
+            addCircleHole(rightArm, -SRV_SHAFT_OFF + SRV_HOLE_DIST / 2, forkH, 1.15);
+            for (const sz of [16, 36]) {
+                addRectHole(rightArm, -7.5, sz, 2.5, 5.0);
+                addRectHole(rightArm, -2.5, sz, 2.5, 5.0);
+            }
+            addExtrudeX(g, rightArm, FORK_IN_W, FORK_ARM_T, mat);
+
+            return g;
+        }
+
+        // =========================================================================
+        // 4. TILT CRADLE (v2.4 BACK BAR WITH LINKAGE CLEARANCE NOTCH)
+        // =========================================================================
+        function buildTiltCradle() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0xdbe2ea);
+
+            // v2.4 Back bar (X:-47..47, Y:-43..-38, Z:-8..8) with clearance notch at X:-43.5..-35.0, Z:4.5..8.0
+            const backBar = new THREE.Shape();
+            backBar.moveTo(-CRADLE_OUT_W, -8);
+            backBar.lineTo(CRADLE_OUT_W, -8);
+            backBar.lineTo(CRADLE_OUT_W, 8);
+            backBar.lineTo(-35.0, 8);
+            backBar.lineTo(-35.0, 4.5);
+            backBar.lineTo(-43.5, 4.5);
+            backBar.lineTo(-43.5, 8);
+            backBar.lineTo(-CRADLE_OUT_W, 8);
+            backBar.closePath();
+            addCircleHole(backBar, -8, 0, 1.7);
+            addCircleHole(backBar, 8, 0, 1.7);
+            addRectHole(backBar, 18, -2.5, 2.5, 5.0);
+            addRectHole(backBar, 25, -2.5, 2.5, 5.0);
+            addExtrudeY(g, backBar, -43, 5.0, mat);
+
+            // Connecting block to eyeball back
+            addBox(g, -14, -39, -8, 28, 9, 16, mat);
+
+            // Left & Right side arms
+            const armShape = new THREE.Shape();
+            armShape.moveTo(-43, -8);
+            armShape.lineTo(0, -8);
+            armShape.absarc(0, 0, 8, -Math.PI / 2, Math.PI / 2, false);
+            armShape.lineTo(-43, 8);
+            armShape.closePath();
+            addCircleHole(armShape, 0, 0, 1.7);
+
+            addExtrudeX(g, armShape, -CRADLE_OUT_W, 4.0, mat);
+            addExtrudeX(g, armShape, CRADLE_HALF_W, 4.0, mat);
+
+            // Horizontal Eyelid Servo mounting wall
+            const srvCY = LID_SRV_Y - SRV_SHAFT_OFF; // -60.3
+            const wall = new THREE.Shape();
+            wall.moveTo(-80, -8);
+            wall.lineTo(-38, -8);
+            wall.lineTo(-38, 8);
+            wall.lineTo(-80, 8);
+            wall.closePath();
+            addRectHole(wall, srvCY - SRV_L / 2 - 3.5, -SRV_W / 2, SRV_L + 3.5, SRV_W);
+            addCircleHole(wall, srvCY - SRV_HOLE_DIST / 2, 0, 1.15);
+            addCircleHole(wall, srvCY + SRV_HOLE_DIST / 2, 0, 1.15);
+            addExtrudeX(g, wall, EYELID_WALL_X, 4.0, mat);
+
+            return g;
+        }
+
+        // =========================================================================
+        // 5. EYEBALL FRONT + BACK (Ø65 mm)
+        // =========================================================================
+        function buildEyeballFront() {
+            const g = new THREE.Group();
+            const scleraMat = makePrintMat(0xffffff, 0.28);
+            const irisMat = makePrintMat(0x0f766e, 0.25);
+            const pupilMat = makePrintMat(0x09090b, 0.18);
+
+            const outer = new THREE.Mesh(
+                new THREE.SphereGeometry(R_EYE, 48, 28, 0, Math.PI * 2, 0, Math.PI / 2),
+                scleraMat
+            );
+            g.add(outer);
+
+            const innerMat = scleraMat.clone();
+            innerMat.side = THREE.BackSide;
+            printMaterials.push(innerMat);
+            g.add(new THREE.Mesh(
+                new THREE.SphereGeometry(R_EYE - 3.0, 32, 18, 0, Math.PI * 2, 0, Math.PI / 2),
+                innerMat
+            ));
+
+            const rim = new THREE.Mesh(new THREE.RingGeometry(R_EYE - 3.0, R_EYE, 48), scleraMat);
+            rim.rotation.x = Math.PI / 2;
+            g.add(rim);
+
+            const thetaIris = Math.asin(15.0 / R_EYE);
+            g.add(new THREE.Mesh(
+                new THREE.SphereGeometry(R_EYE + 0.16, 40, 12, 0, Math.PI * 2, 0, thetaIris),
+                irisMat
+            ));
+
+            const thetaPupil = Math.asin(7.0 / R_EYE);
+            g.add(new THREE.Mesh(
+                new THREE.SphereGeometry(R_EYE + 0.30, 32, 10, 0, Math.PI * 2, 0, thetaPupil),
+                pupilMat
+            ));
+
+            return g;
+        }
+
+        function buildEyeballBack() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0xe5e7eb, 0.42);
+
+            g.add(new THREE.Mesh(
+                new THREE.SphereGeometry(R_EYE, 48, 24, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+                mat
+            ));
+
+            const rim = new THREE.Mesh(new THREE.RingGeometry(R_EYE - 3.0, R_EYE, 48), mat);
+            rim.rotation.x = -Math.PI / 2;
+            g.add(rim);
+
+            addBox(g, -13, -30, -7, 26, 5.5, 14, mat);
+            return g;
+        }
+
+        // =========================================================================
+        // 6. EYELID (v2.4 INTEGRATED CRANK ARM TILTED +10.5 DEG)
+        // =========================================================================
+        function buildEyelid() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0x475569, 0.42);
+
+            g.add(new THREE.Mesh(createEyelidShellGeo(R_LID_IN, R_LID_OUT, 0, 115), mat));
+            addCylX(g, 34.2, 0, 0, 10.0, 8.0, mat);
+
+            // v2.4: Crank arm rotated by +CRANK_BIAS (+10.5 deg) for symmetric swing
+            const crankGroup = new THREE.Group();
+            crankGroup.rotation.x = CRANK_BIAS * DEG2RAD;
+            g.add(crankGroup);
+
+            const crank = new THREE.Shape();
+            crank.absarc(0, 0, 5.0, Math.PI, 0, false);
+            crank.absarc(0, CRANK_R, 3.25, 0, Math.PI, false); // d = 6.5 mm
+            crank.closePath();
+            addCircleHole(crank, 0, 0, 1.7);
+            addCircleHole(crank, 0, CRANK_R, 1.15);
+            addExtrudeX(crankGroup, crank, -39.5, 5.3, mat);
+
+            return g;
+        }
+
+        // =========================================================================
+        // 7. PARALLELOGRAM LINKAGE ROD (v2.4 SLIM d = 6.0mm, L = 55.0mm)
+        // =========================================================================
+        function buildLinkageRod() {
+            const g = new THREE.Group();
+            const mat = makePrintMat(0xea580c, 0.42);
+
+            const rod = new THREE.Shape();
+            rod.absarc(0, 0, 3.0, -Math.PI / 2, Math.PI / 2, false);
+            rod.absarc(-LINK_LEN, 0, 3.0, Math.PI / 2, -Math.PI / 2, false);
+            rod.closePath();
+            addCircleHole(rod, 0, 0, 1.15);
+            addCircleHole(rod, -LINK_LEN, 0, 1.15);
+            addExtrudeX(g, rod, -1.25, 2.5, mat);
+
+            return g;
+        }
+
+        // =========================================================================
+        // 8. DETAILED ELECTRICAL DUMMIES (TOGGLEABLE)
+        // =========================================================================
+        function buildMG90S() {
+            const g = new THREE.Group();
+            const blueLower = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4, metalness: 0.08 });
+            const blueUpper = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.35, metalness: 0.08 });
+            const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.55 });
+            const silverMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.25, metalness: 0.8 });
+
+            addBox(g, -6.1, -6.1, -16.0, 22.8, 12.2, 16.0, blueLower);
+
+            const ears = new THREE.Shape();
+            ears.moveTo(-10.95, -6.1); ears.lineTo(21.55, -6.1);
+            ears.lineTo(21.55, 6.1);   ears.lineTo(-10.95, 6.1);
+            ears.closePath();
+            addCircleHole(ears, SRV_SHAFT_OFF - SRV_HOLE_DIST / 2, 0, 1.1);
+            addCircleHole(ears, SRV_SHAFT_OFF + SRV_HOLE_DIST / 2, 0, 1.1);
+            addExtrudeZ(g, ears, 0, 2.5, blueLower);
+
+            addBox(g, -6.1, -6.1, 2.5, 22.8, 12.2, 4.5, blueUpper);
+            addBox(g, 16.7, -2.5, -14.5, 3.2, 5.0, 3.0, orangeMat);
+
+            addCylZ(g, 0, 0, 7.0, 11.8, 11.8, 1.5, silverMat);
+            addCylZ(g, 5.5, 0, 7.0, 5.0, 5.0, 1.5, silverMat);
+            addCylZ(g, 0, 0, 8.5, 4.8, 4.8, 3.5, silverMat);
+
+            elecGroups.push(g);
+            return g;
+        }
+
+        function buildEyelidHorn() {
+            const g = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+            const horn = new THREE.Shape();
+            horn.absarc(0, 0, 3.25, Math.PI, 0, false);
+            horn.absarc(0, CRANK_R, 2.25, 0, Math.PI, false);
+            horn.closePath();
+            addCircleHole(horn, 0, CRANK_R, 1.0);
+            addExtrudeX(g, horn, -1.0, 2.0, mat);
+
+            elecGroups.push(g);
+            return g;
+        }
+
+        function buildESP32S3() {
+            const g = new THREE.Group();
+            const pcbMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.55 });
+            const usbMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.25, metalness: 0.85 });
+            const camMat = new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.35 });
+            const pinMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.3, metalness: 0.8 });
+
+            addBox(g, -13.75, -0.8, -28.5, 27.5, 1.6, 57.0, pcbMat);
+            addBox(g, -9.75, -0.1, -31.25, 8.5, 3.2, 6.5, usbMat);
+            addBox(g, 1.25, -0.1, -31.25, 8.5, 3.2, 6.5, usbMat);
+
+            addBox(g, -4.25, 0.75, 9.25, 8.5, 5.5, 8.5, camMat);
+            addCylY(g, 0, 5.5, 13.5, 8.0, 3.2, camMat);
+
+            addBox(g, -13.25, -9.25, -26.0, 2.5, 8.5, 48.0, pinMat);
+            addBox(g, 10.75, -9.25, -26.0, 2.5, 8.5, 48.0, pinMat);
+
+            elecGroups.push(g);
+            return g;
+        }
+
+        // =========================================================================
+        // MAIN INITIALIZATION
+        // =========================================================================
+        function init() {
+            try {
+                const container = document.getElementById('viewport');
+                const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                container.appendChild(renderer.domElement);
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xf4f5f7);
+
+                // Minimal Studio Grid Floor
+                const grid = new THREE.GridHelper(320, 32, 0xcbd5e1, 0xe2e8f0);
+                scene.add(grid);
+
+                const camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 1, 2000);
+                camera.position.copy(state.camTargetPos);
+
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.target.copy(state.camTargetLook);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.08;
+                controls.minDistance = 90;
+                controls.maxDistance = 620;
+                controls.update();
+                controls.addEventListener('start', () => { state.camLerp = false; });
+
+                // Clean Studio Daylight Lighting
+                scene.add(new THREE.HemisphereLight(0xffffff, 0xdbe2ea, 1.05));
+                const key = new THREE.DirectionalLight(0xffffff, 0.95);
+                key.position.set(160, 260, 200);
+                scene.add(key);
+                const fill = new THREE.DirectionalLight(0xf1f5f9, 0.55);
+                fill.position.set(-180, 140, 140);
+                scene.add(fill);
+                const rim = new THREE.DirectionalLight(0xffffff, 0.5);
+                rim.position.set(-60, 180, -220);
+                scene.add(rim);
+
+                // LITERAL OPENSCAD COORDINATE WRAPPER
+                const worldRoot = new THREE.Group();
+                worldRoot.rotation.y = Math.PI;
+                scene.add(worldRoot);
+
+                const cadRoot = new THREE.Group();
+                cadRoot.rotation.x = -Math.PI / 2;
+                worldRoot.add(cadRoot);
+
+                function registerExplode(obj, baseVec, offsetVec) {
+                    obj.position.copy(baseVec);
+                    explodeEntries.push({ obj, base: baseVec.clone(), offset: offsetVec.clone() });
+                }
+
+                // 1. BASE HOUSING & PAN SERVO
+                cadRoot.add(buildBaseHousing());
+
+                const panServo = buildMG90S();
+                cadRoot.add(panServo);
+                registerExplode(panServo, new THREE.Vector3(0, 0, Z_BASE_TOP), new THREE.Vector3(0, 0, -18));
+
+                // 2. CAMERA MOUNT & ESP32-S3-CAM
+                const camMount = buildCameraMount();
+                cadRoot.add(camMount);
+                registerExplode(camMount, new THREE.Vector3(0, CAM_MOUNT_Y, 5.0), new THREE.Vector3(0, 35, 0));
+
+                const espPivot = new THREE.Group();
+                cadRoot.add(espPivot);
+                registerExplode(espPivot, new THREE.Vector3(0, CAM_MOUNT_Y, 18.0), new THREE.Vector3(0, 55, 14));
+                const espTilt = new THREE.Group();
+                espTilt.rotation.x = CAM_TILT_ANGLE * DEG2RAD;
+                espPivot.add(espTilt);
+                const esp32 = buildESP32S3();
+                esp32.position.set(0, 0, CAM_H / 2 + 2.5);
+                espTilt.add(esp32);
+
+                // 3. PAN GROUP
+                const panGroup = new THREE.Group();
+                cadRoot.add(panGroup);
+                registerExplode(panGroup, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 26));
+
+                const panFork = buildPanFork();
+                panFork.position.set(0, 0, Z_FORK_BASE);
+                panGroup.add(panFork);
+
+                const tiltServo = buildMG90S();
+                tiltServo.rotation.order = 'XYZ';
+                tiltServo.rotation.set(0, -Math.PI / 2, -Math.PI / 2);
+                panGroup.add(tiltServo);
+                registerExplode(tiltServo, new THREE.Vector3(FORK_OUT_W + 2.5, 0, Z_EYE), new THREE.Vector3(24, 0, 0));
+
+                // 4. TILT GROUP
+                const tiltGroup = new THREE.Group();
+                panGroup.add(tiltGroup);
+                registerExplode(tiltGroup, new THREE.Vector3(0, 0, Z_EYE), new THREE.Vector3(0, 0, 28));
+
+                tiltGroup.add(buildTiltCradle());
+
+                const eyelidServo = buildMG90S();
+                eyelidServo.rotation.order = 'XYZ';
+                eyelidServo.rotation.set(0, -Math.PI / 2, -Math.PI / 2);
+                tiltGroup.add(eyelidServo);
+                registerExplode(eyelidServo, new THREE.Vector3(EYELID_WALL_X, LID_SRV_Y, 0), new THREE.Vector3(-15, -12, 0));
+
+                const eyelidHorn = buildEyelidHorn();
+                tiltGroup.add(eyelidHorn);
+                registerExplode(eyelidHorn, new THREE.Vector3(LINK_X + 2.25, LID_SRV_Y, 0), new THREE.Vector3(-18, -12, 0));
+
+                const eyeballFront = buildEyeballFront();
+                tiltGroup.add(eyeballFront);
+                registerExplode(eyeballFront, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 36, 0));
+
+                const eyeballBack = buildEyeballBack();
+                tiltGroup.add(eyeballBack);
+                registerExplode(eyeballBack, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 10, 0));
+
+                const eyelidGroup = buildEyelid();
+                tiltGroup.add(eyelidGroup);
+                registerExplode(eyelidGroup, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 16, 32));
+
+                const linkageRod = buildLinkageRod();
+                tiltGroup.add(linkageRod);
+
+                // =========================================================================
+                // UI CONTROLS & INTERACTIVE STATE MACHINE CARDS
+                // =========================================================================
+                const ui = {
+                    headerStatus: document.getElementById('header-status'),
+                    btnTrack: document.getElementById('btn-mode-track'),
+                    btnIdle: document.getElementById('btn-mode-idle'),
+                    btnJudge: document.getElementById('btn-mode-judge'),
+                    btnSleep: document.getElementById('btn-mode-sleep'),
+                    btnManual: document.getElementById('btn-mode-manual'),
+                    btnReset: document.getElementById('btn-reset-all'),
+                    sPan: document.getElementById('slider-pan'),
+                    sTilt: document.getElementById('slider-tilt'),
+                    sLid: document.getElementById('slider-eyelid'),
+                    sExp: document.getElementById('slider-explode'),
+                    vPan: document.getElementById('val-pan'),
+                    vTilt: document.getElementById('val-tilt'),
+                    vLid: document.getElementById('val-eyelid'),
+                    vExp: document.getElementById('val-explode'),
+                    btnElecOn: document.getElementById('btn-elec-on'),
+                    btnElecOff: document.getElementById('btn-elec-off'),
+                    btnXray: document.getElementById('btn-xray'),
+                    rMode: document.getElementById('readout-mode'),
+                    rPan: document.getElementById('readout-pan'),
+                    rTilt: document.getElementById('readout-tilt'),
+                    rLid: document.getElementById('readout-lid'),
+                    stateCards: document.querySelectorAll('.state-card')
+                };
+
+                function styleModeBtn(btn, active, extra = '') {
+                    btn.className = active
+                        ? `px-2.5 py-2 rounded-xl text-xs font-medium border transition bg-gray-900 text-white border-gray-900 ${extra}`
+                        : `px-2.5 py-2 rounded-xl text-xs font-medium border transition bg-white hover:bg-gray-50 text-gray-700 border-gray-200 ${extra}`;
+                }
+
+                function styleSegBtn(btn, active) {
+                    btn.className = active
+                        ? 'px-2.5 py-1.5 rounded-lg text-xs font-medium transition bg-white text-gray-900 shadow-sm'
+                        : 'px-2.5 py-1.5 rounded-lg text-xs font-medium transition text-gray-500 hover:text-gray-900';
+                }
+
+                function syncUI() {
+                    styleModeBtn(ui.btnTrack, state.mode === 'TRACK');
+                    styleModeBtn(ui.btnIdle, state.mode === 'IDLE');
+                    styleModeBtn(ui.btnJudge, state.mode === 'JUDGMENTAL');
+                    styleModeBtn(ui.btnSleep, state.mode === 'SLEEP');
+                    styleModeBtn(ui.btnManual, state.mode === 'MANUAL', 'col-span-2 sm:col-span-1 lg:col-span-2');
+
+                    styleSegBtn(ui.btnElecOn, state.showElectrical);
+                    styleSegBtn(ui.btnElecOff, !state.showElectrical);
+
+                    ui.btnXray.className = state.xray
+                        ? 'w-full px-3 py-2 rounded-xl text-xs font-medium border transition bg-gray-900 text-white border-gray-900'
+                        : 'w-full px-3 py-2 rounded-xl text-xs font-medium border transition bg-white hover:bg-gray-50 text-gray-700 border-gray-200';
+                    ui.btnXray.textContent = `X-Ray Housing: ${state.xray ? 'ON' : 'OFF'}`;
+
+                    ui.rMode.textContent = state.mode;
+                    if (ui.headerStatus) ui.headerStatus.textContent = `MODE: ${state.mode}`;
+
+                    // Sync editorial interactive State Machine cards
+                    ui.stateCards.forEach((card) => {
+                        const cardMode = card.getAttribute('data-state-card');
+                        const badge = card.querySelector('.card-badge');
+                        const isActive = cardMode === state.mode;
+                        if (isActive) {
+                            card.classList.add('border-gray-900', 'ring-1', 'ring-gray-900', 'bg-[#FAFAFA]');
+                            card.classList.remove('border-gray-200', 'bg-white');
+                            if (badge) badge.classList.remove('hidden');
+                        } else {
+                            card.classList.remove('border-gray-900', 'ring-1', 'ring-gray-900', 'bg-[#FAFAFA]');
+                            card.classList.add('border-gray-200', 'bg-white');
+                            if (badge) badge.classList.add('hidden');
+                        }
+                    });
+                }
+
+                function setMode(newMode) {
+                    state.mode = newMode;
+                    if (newMode === 'TRACK') {
+                        state.targetEyelid = 0;
+                    } else if (newMode === 'IDLE') {
+                        state.targetEyelid = 6;
+                        state.nextIdleGlance = performance.now() + 200;
+                    } else if (newMode === 'JUDGMENTAL') {
+                        state.targetEyelid = 45;
+                    } else if (newMode === 'SLEEP') {
+                        state.targetPan = 0;
+                        state.targetTilt = 0;
+                        state.targetEyelid = 85;
+                    } else if (newMode === 'MANUAL') {
+                        state.targetPan = parseFloat(ui.sPan.value);
+                        state.targetTilt = parseFloat(ui.sTilt.value);
+                        state.targetEyelid = parseFloat(ui.sLid.value);
+                    }
+                    syncUI();
+                }
+
+                ui.btnTrack.addEventListener('click', () => setMode('TRACK'));
+                ui.btnIdle.addEventListener('click', () => setMode('IDLE'));
+                ui.btnJudge.addEventListener('click', () => setMode('JUDGMENTAL'));
+                ui.btnSleep.addEventListener('click', () => setMode('SLEEP'));
+                ui.btnManual.addEventListener('click', () => setMode('MANUAL'));
+
+                // Editorial State Machine cards trigger 3D mode & scroll gently if desired
+                ui.stateCards.forEach((card) => {
+                    card.addEventListener('click', () => {
+                        const mode = card.getAttribute('data-state-card');
+                        if (mode) {
+                            setMode(mode);
+                            document.getElementById('inspector').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+                });
+
+                function onSliderInput() {
+                    state.mode = 'MANUAL';
+                    state.targetPan = parseFloat(ui.sPan.value);
+                    state.targetTilt = parseFloat(ui.sTilt.value);
+                    state.targetEyelid = parseFloat(ui.sLid.value);
+                    syncUI();
+                }
+                ui.sPan.addEventListener('input', onSliderInput);
+                ui.sTilt.addEventListener('input', onSliderInput);
+                ui.sLid.addEventListener('input', onSliderInput);
+
+                ui.sExp.addEventListener('input', () => {
+                    const pct = parseFloat(ui.sExp.value);
+                    state.explode = pct / 100;
+                    ui.vExp.textContent = `${pct}%`;
+                });
+
+                function setElectrical(on) {
+                    state.showElectrical = on;
+                    for (const eg of elecGroups) eg.visible = on;
+                    syncUI();
+                }
+                ui.btnElecOn.addEventListener('click', () => setElectrical(true));
+                ui.btnElecOff.addEventListener('click', () => setElectrical(false));
+
+                function setXray(on) {
+                    state.xray = on;
+                    for (const mat of printMaterials) {
+                        mat.transparent = on;
+                        mat.opacity = on ? 0.32 : 1.0;
+                        mat.depthWrite = !on;
+                        mat.needsUpdate = true;
+                    }
+                    syncUI();
+                }
+                ui.btnXray.addEventListener('click', () => setXray(!state.xray));
+
+                function setCam(pos, look = new THREE.Vector3(0, 82, 0)) {
+                    state.camTargetPos.copy(pos);
+                    state.camTargetLook.copy(look);
+                    state.camLerp = true;
+                }
+                document.getElementById('btn-cam-iso').addEventListener('click', () => setCam(new THREE.Vector3(120, 145, 235)));
+                document.getElementById('btn-cam-front').addEventListener('click', () => setCam(new THREE.Vector3(0, 98, 255)));
+                document.getElementById('btn-cam-back').addEventListener('click', () => setCam(new THREE.Vector3(0, 115, -245)));
+                document.getElementById('btn-cam-left').addEventListener('click', () => setCam(new THREE.Vector3(-255, 105, 0)));
+                document.getElementById('btn-cam-right').addEventListener('click', () => setCam(new THREE.Vector3(255, 105, 0)));
+                document.getElementById('btn-cam-top').addEventListener('click', () => setCam(new THREE.Vector3(0, 325, 20)));
+
+                ui.btnReset.addEventListener('click', () => {
+                    state.explode = 0;
+                    ui.sExp.value = 0;
+                    ui.vExp.textContent = '0%';
+                    setElectrical(true);
+                    setXray(false);
+                    setMode('TRACK');
+                    state.targetPan = 0;
+                    state.targetTilt = 0;
+                    setCam(new THREE.Vector3(120, 145, 235));
+                });
+
+                // Cursor Tracking across viewport
+                window.addEventListener('pointermove', (e) => {
+                    if (state.mode !== 'TRACK' && state.mode !== 'JUDGMENTAL') return;
+                    const rect = container.getBoundingClientRect();
+                    if (rect.width <= 0 || rect.height <= 0) return;
+                    const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                    state.targetPan = THREE.MathUtils.clamp(ndcX * 45, -45, 45);
+                    state.targetTilt = THREE.MathUtils.clamp(ndcY * 25, -25, 25);
+                });
+
+                // Adaptive Resize Observer
+                const resizeRenderer = () => {
+                    const w = container.clientWidth;
+                    const h = container.clientHeight;
+                    if (w > 0 && h > 0) {
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(w, h);
+                    }
+                };
+                if (typeof ResizeObserver !== 'undefined') {
+                    new ResizeObserver(resizeRenderer).observe(container);
+                } else {
+                    window.addEventListener('resize', resizeRenderer);
+                }
+
+                syncUI();
+
+                // =========================================================================
+                // ANIMATION & KINEMATICS LOOP (v2.4 SYMMETRIC PARALLELOGRAM)
+                // =========================================================================
+                let lastTime = performance.now();
+                const tmpTarget = new THREE.Vector3();
+
+                function animate(now) {
+                    requestAnimationFrame(animate);
+                    const dt = Math.min((now - lastTime) / 1000, 0.05);
+                    lastTime = now;
+
+                    // Idle bounded random glances
+                    if (state.mode === 'IDLE' && now >= state.nextIdleGlance) {
+                        state.idlePan = (Math.random() * 2 - 1) * 32;
+                        state.idleTilt = (Math.random() * 2 - 1) * 14;
+                        state.nextIdleGlance = now + 1800 + Math.random() * 2600;
+                    }
+
+                    // Subtle micro-saccades in TRACK & JUDGMENTAL modes
+                    if ((state.mode === 'TRACK' || state.mode === 'JUDGMENTAL') && now >= state.nextMicroSaccade) {
+                        state.microPan = (Math.random() * 2 - 1) * 1.4;
+                        state.microTilt = (Math.random() * 2 - 1) * 0.9;
+                        state.nextMicroSaccade = now + 900 + Math.random() * 1400;
+                    }
+
+                    // Periodic natural blink in TRACK, IDLE, JUDGMENTAL
+                    let blinkAdd = 0;
+                    if (state.mode === 'TRACK' || state.mode === 'IDLE' || state.mode === 'JUDGMENTAL') {
+                        if (state.blinkProgress < 0 && now >= state.nextBlinkTime) {
+                            state.blinkProgress = 0;
+                        }
+                        if (state.blinkProgress >= 0) {
+                            state.blinkProgress += dt / 0.17;
+                            if (state.blinkProgress >= 1) {
+                                state.blinkProgress = -1;
+                                state.nextBlinkTime = now + 4000 + Math.random() * 3000;
+                            } else {
+                                blinkAdd = Math.sin(state.blinkProgress * Math.PI) * (85 - state.targetEyelid);
+                            }
+                        }
+                    }
+
+                    // Compute desired Pan / Tilt / Eyelid per mode
+                    let desiredPan = state.targetPan;
+                    let desiredTilt = state.targetTilt;
+                    let rate = 12.0;
+
+                    if (state.mode === 'TRACK') {
+                        desiredPan = THREE.MathUtils.clamp(state.targetPan + state.microPan, -45, 45);
+                        desiredTilt = THREE.MathUtils.clamp(state.targetTilt + state.microTilt, -25, 25);
+                        rate = 9.5;
+                    } else if (state.mode === 'JUDGMENTAL') {
+                        desiredPan = THREE.MathUtils.clamp(state.targetPan + state.microPan * 0.4, -45, 45);
+                        desiredTilt = THREE.MathUtils.clamp(state.targetTilt + state.microTilt * 0.4, -25, 25);
+                        rate = 4.2; // Slower suspicious lock-on
+                    } else if (state.mode === 'IDLE') {
+                        desiredPan = state.idlePan;
+                        desiredTilt = state.idleTilt;
+                        rate = 3.0;
+                    } else if (state.mode === 'SLEEP') {
+                        desiredPan = 0;
+                        desiredTilt = 0;
+                        rate = 4.5;
+                    } else {
+                        rate = 18.0; // Direct Manual
+                    }
+
+                    const a = 1 - Math.exp(-rate * dt);
+                    state.currentPan += (desiredPan - state.currentPan) * a;
+                    state.currentTilt += (desiredTilt - state.currentTilt) * a;
+
+                    const desiredLid = THREE.MathUtils.clamp(state.targetEyelid + blinkAdd, 0, 85);
+                    state.currentEyelid += (desiredLid - state.currentEyelid) * (1 - Math.exp(-16.0 * dt));
+
+                    // Apply 3-DOF rotations in literal OpenSCAD v2.4 coordinates
+                    panGroup.rotation.z = state.currentPan * DEG2RAD;
+                    tiltGroup.rotation.x = state.currentTilt * DEG2RAD;
+
+                    const lidRx = (LID_OPEN_BIAS - state.currentEyelid) * DEG2RAD;
+                    const crankPhi = lidRx + CRANK_BIAS * DEG2RAD; // v2.4 symmetric crank angle!
+
+                    eyelidGroup.rotation.x = lidRx;
+                    eyelidHorn.rotation.x = crankPhi;
+
+                    // Apply Explode offsets
+                    const ex = state.explode;
+                    for (const item of explodeEntries) {
+                        tmpTarget.copy(item.base).addScaledVector(item.offset, ex);
+                        item.obj.position.copy(tmpTarget);
+                    }
+
+                    // v2.4 Symmetric 1:1 Parallelogram Linkage Rod
+                    linkageRod.position.set(
+                        LINK_X - ex * 22,
+                        -CRANK_R * Math.sin(crankPhi),
+                        CRANK_R * Math.cos(crankPhi) + ex * 18
+                    );
+
+                    // Camera preset smooth transition
+                    if (state.camLerp) {
+                        const ca = 1 - Math.exp(-7.0 * dt);
+                        camera.position.lerp(state.camTargetPos, ca);
+                        controls.target.lerp(state.camTargetLook, ca);
+                        if (camera.position.distanceTo(state.camTargetPos) < 0.4) {
+                            state.camLerp = false;
+                        }
+                    }
+                    controls.update();
+
+                    // Live telemetry updates
+                    ui.vPan.textContent = `${state.currentPan.toFixed(1)}°`;
+                    ui.vTilt.textContent = `${state.currentTilt.toFixed(1)}°`;
+                    ui.vLid.textContent = `${state.currentEyelid.toFixed(1)}°`;
+                    ui.rPan.textContent = state.currentPan.toFixed(1);
+                    ui.rTilt.textContent = state.currentTilt.toFixed(1);
+                    ui.rLid.textContent = state.currentEyelid.toFixed(1);
+
+                    if (state.mode !== 'MANUAL') {
+                        ui.sPan.value = state.currentPan.toFixed(1);
+                        ui.sTilt.value = state.currentTilt.toFixed(1);
+                        ui.sLid.value = state.currentEyelid.toFixed(1);
+                    }
+
+                    renderer.render(scene, camera);
+                }
+
+                requestAnimationFrame(animate);
+            } catch (err) {
+                const box = document.getElementById('error-box');
+                const msg = document.getElementById('error-msg');
+                if (box && msg) {
+                    box.classList.remove('hidden');
+                    msg.textContent = String(err);
+                }
+                console.error(err);
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
